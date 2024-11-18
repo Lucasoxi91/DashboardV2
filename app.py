@@ -273,73 +273,84 @@ def generate_report():
 
         # Query SQL ajustada com a exclusão das escolas e o filtro para apenas o simulado 03 em "concluídos"
         query = text(f"""
-            WITH CursoAlunos AS (
-                SELECT
-                    ic2.name AS escola,
-                    UPPER(CASE WHEN cl.name = 'NICA' THEN 'UNICA' ELSE regexp_replace(cl.name, '[^0-9A-Za-z ]', '', 'g') END) AS turma,
-                    ARRAY_AGG(DISTINCT u.id) AS matriculados_ids,
-                    
-                    ARRAY_AGG(DISTINCT CASE 
-                                       WHEN qup.finished = TRUE 
-                                       AND u.last_sign_in_at IS NOT NULL 
-                                       AND u.last_sign_in_at >= NOW() - INTERVAL '{dias} DAY' 
-                                       AND u.id NOT IN (
-                                            SELECT u2.id 
-                                            FROM users u2 
-                                            LEFT JOIN quiz_user_progresses qup2 ON qup2.user_id = u2.id
-                                            LEFT JOIN quizzes q2 ON q2.id = qup2.quiz_id
-                                            WHERE qup2.finished = TRUE AND q2.name ILIKE :simulado_pattern_03
-                                        ) THEN u.id 
-                                       END) AS frequentando_ids,
-                                       
-                    ARRAY_AGG(DISTINCT CASE 
-                                       WHEN u.last_sign_in_at IS NULL THEN u.id 
-                                       END) AS nunca_acessou_ids,
-                                       
-                    ARRAY_AGG(DISTINCT CASE 
-                                       WHEN u.last_sign_in_at IS NOT NULL 
-                                       AND u.last_sign_in_at < NOW() - INTERVAL '{dias} DAY' 
-                                       AND u.last_sign_in_at >= NOW() - INTERVAL '{dias} DAY' 
-                                       AND u.id NOT IN (
-                                            SELECT u2.id 
-                                            FROM users u2 
-                                            LEFT JOIN quiz_user_progresses qup2 ON qup2.user_id = u2.id
-                                            LEFT JOIN quizzes q2 ON q2.id = qup2.quiz_id
-                                            WHERE qup2.finished = TRUE AND q2.name ILIKE :simulado_pattern_03
-                                        ) THEN u.id 
-                                       END) AS nao_acessa_ha_x_dias_ids,
-                                       
-                    ARRAY_AGG(DISTINCT CASE 
-                                       WHEN u.last_sign_in_at IS NOT NULL 
-                                       AND u.last_sign_in_at < NOW() - INTERVAL '{dias} DAY' 
-                                       AND u.id NOT IN (
-                                            SELECT u2.id 
-                                            FROM users u2 
-                                            LEFT JOIN quiz_user_progresses qup2 ON qup2.user_id = u2.id
-                                            LEFT JOIN quizzes q2 ON q2.id = qup2.quiz_id
-                                            WHERE qup2.finished = TRUE AND q2.name ILIKE :simulado_pattern_03
-                                        ) THEN u.id 
-                                       END) AS nao_acessa_ha_mais_de_x_dias_ids,
-                                       
-                    ARRAY_AGG(DISTINCT CASE 
-                                       WHEN qup.finished = TRUE AND q.name ILIKE :simulado_pattern_03 THEN u.id 
-                                       END) AS concluidos_ids
-                    
-                FROM
-                    users u
-                LEFT JOIN institution_enrollments ie ON ie.user_id = u.id
-                LEFT JOIN institution_classrooms cl ON cl.id = ie.classroom_id
-                LEFT JOIN institution_levels il ON il.id = cl.level_id
-                LEFT JOIN institution_courses ic ON ic.id = il.course_id
-                LEFT JOIN institution_colleges ic2 ON ic2.id = ic.institution_college_id
-                LEFT JOIN institutions inst ON inst.id = ic2.institution_id
-                LEFT JOIN quiz_user_progresses qup ON qup.user_id = u.id
-                LEFT JOIN quizzes q ON q.id = qup.quiz_id
-                WHERE inst.name ILIKE :curso
-                AND ic2.name NOT ILIKE ANY (ARRAY['%ESCOLA1%', '%ESCOLA2%', 'Wiquadro', '%ESCOLA_SANDBOX%', '% Wiquadro %'])  -- Exclusão das escolas específicas
-                GROUP BY ic2.name, cl.name
-            )
-            SELECT * FROM CursoAlunos;
+                WITH CursoAlunos AS ( 
+                    SELECT
+                        ic2.name AS escola,
+                        UPPER(
+                            CASE 
+                                WHEN cl.name = 'NICA' THEN 'UNICA' 
+                                ELSE regexp_replace(cl.name, '[^0-9A-Za-z ]', '', 'g') 
+                            END
+                        ) AS turma,
+                        ARRAY_AGG(DISTINCT u.id) AS matriculados_ids,
+
+                        ARRAY_AGG(DISTINCT CASE
+                                        WHEN qup.finished = TRUE
+                                        AND u.last_sign_in_at IS NOT NULL
+                                        AND u.last_sign_in_at >= NOW() - INTERVAL '21 DAY'
+                                        AND u.id NOT IN (
+                                                SELECT u2.id
+                                                FROM users u2
+                                                LEFT JOIN quiz_user_progresses qup2 ON qup2.user_id = u2.id
+                                                LEFT JOIN quizzes q2 ON q2.id = qup2.quiz_id
+                                                WHERE qup2.finished = TRUE 
+                                                AND q2.name ILIKE :simulado_pattern_03
+                                            ) THEN u.id
+                                        END) AS frequentando_ids,
+
+                        ARRAY_AGG(DISTINCT CASE
+                                        WHEN u.last_sign_in_at IS NULL THEN u.id
+                                        END) AS nunca_acessou_ids,
+
+                        ARRAY_AGG(DISTINCT CASE
+                                        WHEN u.last_sign_in_at IS NOT NULL
+                                        AND u.last_sign_in_at < NOW() - INTERVAL '21 DAY'
+                                        AND u.last_sign_in_at >= NOW() - INTERVAL '21 DAY'
+                                        AND u.id NOT IN (
+                                                SELECT u2.id
+                                                FROM users u2
+                                                LEFT JOIN quiz_user_progresses qup2 ON qup2.user_id = u2.id
+                                                LEFT JOIN quizzes q2 ON q2.id = qup2.quiz_id
+                                                WHERE qup2.finished = TRUE 
+                                                AND q2.name ILIKE :simulado_pattern_03
+                                            ) THEN u.id
+                                        END) AS nao_acessa_ha_x_dias_ids,
+
+                        ARRAY_AGG(DISTINCT CASE
+                                        WHEN u.last_sign_in_at IS NOT NULL
+                                        AND u.last_sign_in_at < NOW() - INTERVAL '21 DAY'
+                                        AND u.id NOT IN (
+                                                SELECT u2.id
+                                                FROM users u2
+                                                LEFT JOIN quiz_user_progresses qup2 ON qup2.user_id = u2.id
+                                                LEFT JOIN quizzes q2 ON q2.id = qup2.quiz_id
+                                                WHERE qup2.finished = TRUE 
+                                                AND q2.name ILIKE :simulado_pattern_03
+                                            ) THEN u.id
+                                        END) AS nao_acessa_ha_mais_de_x_dias_ids,
+
+                        ARRAY_AGG(DISTINCT CASE
+                                        WHEN qup.finished = TRUE 
+                                        AND q.name ILIKE :simulado_pattern_03 THEN u.id
+                                        END) AS concluidos_ids
+
+                    FROM
+                        users u
+                    LEFT JOIN institution_enrollments ie ON ie.user_id = u.id
+                    LEFT JOIN institution_classrooms cl ON cl.id = ie.classroom_id
+                    LEFT JOIN institution_levels il ON il.id = cl.level_id
+                    LEFT JOIN institution_courses ic ON ic.id = il.course_id
+                    LEFT JOIN institution_colleges ic2 ON ic2.id = ic.institution_college_id
+                    LEFT JOIN institutions inst ON inst.id = ic2.institution_id
+                    LEFT JOIN quiz_user_progresses qup ON qup.user_id = u.id
+                    LEFT JOIN quizzes q ON q.id = qup.quiz_id
+                    WHERE inst.name ILIKE :curso
+                    AND ic2.name != 'Wiquadro'
+                    GROUP BY ic2.name, cl.name
+                )
+                SELECT * FROM CursoAlunos;
+
+
         """)
 
         # Log da consulta SQL

@@ -1,10 +1,16 @@
 cd C:\Users\wilivro\Documents\Dashboard_Safa V2
 
+pip install C:\Users\wilivro\Documents\Dashboard_Safa V2\psycopg2-2.9.10-cp39-cp39-win_amd64.whl
+
+
 venv\Scripts\activate
 
 set FLASK_APP=app.py
 
 flask run OU python -m flask run
+
+git config --global user.name "Lucas"
+git config --global user.email "lucasoxi91@gmail.com"
 
 
 git init (apenas para novos repositórios)
@@ -28,42 +34,6 @@ URL: ec2-44-220-222-138.compute-1.amazonaws.com
 Database: de84slt1iucctv
 Port: 5432
 
-
-
-
-
-SQL Gerado:
-               WITH SelectedData AS (
-        SELECT
-            qaur.user_id,
-            qaur.quiz_id,
-            qur.topic_name,
-            qaur.result
-        FROM quiz_user_answer_results qaur
-        JOIN quiz_user_answer_reports qur
-            ON qur.question_id = qaur.question_id
-            AND qur.quiz_id = qaur.quiz_id
-        WHERE qaur.quiz_id IN (SELECT id FROM quizzes WHERE name ILIKE '%Sim Geral 5º MT C1 03%')
-    ),
-    AggregatedResults AS (
-        SELECT
-            ic2.name AS escola,
-            cl.name AS turma,
-            COUNT(DISTINCT u.id) AS alunos_concluidos,
-            sd.topic_name AS descritor,
-            ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) AS acertos
-        FROM SelectedData sd
-        JOIN users u ON u.id = sd.user_id
-        JOIN institution_enrollments ie
-            ON ie.user_id = u.id
-        JOIN institution_classrooms cl
-            ON cl.id = ie.classroom_id
-        JOIN institution_colleges ic2
-            ON ic2.id = ie.college_id
-        WHERE ic2.name ILIKE '%COLÉGIO ANTÔNIO ARARIPE%'
-        GROUP BY ic2.name, cl.name, sd.topic_name
-        HAVING ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) <= 50
-        ORDER BY ic2.name, cl.name, sd.topic_name
-        LIMIT 100
-    )
-    SELECT * FROM AggregatedResults;
+sudo service nginx restart
+sudo systemctl start Dashboard_Safa
+sudo systemctl stop Dashboard_Safa
