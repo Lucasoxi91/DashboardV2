@@ -1,0 +1,108 @@
+from flask import Flask, render_template_string
+import psycopg2
+
+def get_db_connection():
+    """
+    Cria uma conexão com o banco de dados PostgreSQL e retorna o objeto de conexão.
+    """
+    conn = None
+    try:
+        # Parâmetros de conexão
+        conn = psycopg2.connect(
+            host="ec2-3-224-58-73.compute-1.amazonaws.com",
+            database="de84slt1iucctv",
+            user="adaptativa_read",
+            password="pe71d6441e182e2458c5fd7701d60d1d0023f68f74dbd0ea0f8e1211d05a14374",
+            port="5432"
+        )
+    except Exception as e:
+        print(f"Falha na conexão ao banco de dados: {e}")
+    return conn
+
+def execute_query():
+    """
+    Executa a consulta SQL fornecida e retorna os resultados.
+    """
+    query = """--get the list of everything wiht a institution.id
+        select
+        institutions.holding_id as holding_id,
+        h.name as holding_name,
+        institutions.name as institution_name,
+        institutions.id as institution_id,
+        institution_colleges.name as college_name,
+        institution_colleges.id as college_id,
+        institution_courses.name as course_name,
+        institution_courses.id as course_id,
+        institution_levels.name as level_name,
+        institution_levels.id as level_id,
+        institution_classrooms.name as classroom_name,
+        institution_classrooms.id as classroom_id
+        From institutions
+        inner join holdings h on institutions.holding_id = h.id 
+        left join institution_colleges on institution_colleges.institution_id = institutions.id 
+        left join institution_courses on institution_courses.institution_college_id = institution_colleges.id
+        left join institution_levels on institution_levels.course_id = institution_courses.id
+        left join institution_classrooms on institution_classrooms.level_id = institution_levels.id
+
+        where institutions.id =244  and institution_colleges.year = 2024 ;--safa;
+
+    """
+    column_names = []  # Lista para armazenar os nomes das colunas
+    results = []
+    conn = get_db_connection()
+    if conn is not None:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                column_names = [desc[0] for desc in cur.description]  # Extrai os nomes das colunas
+                results = cur.fetchall()
+        except Exception as e:
+            print(f"Falha na execução da consulta: {e}")
+        finally:
+            conn.close()
+    return column_names, results  # Retorna os nomes das colunas e os resultados
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    column_names, query_results = execute_query()  # Recebe ambos os nomes das colunas e os resultados
+    
+    # Modelo de string HTML ajustado para usar column_names dinamicamente
+    html_template = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Resultados da Consulta</title>
+        <style>
+            /* Estilos mantidos para brevidade */
+        </style>
+    </head>
+    <body>
+        <div class="header-container">
+            <h1>Detalhes da Instituição</h1>
+        </div>
+        <div class="table-container">
+            <table>
+                <tr>
+                    {% for name in column_names %}
+                    <th>{{ name }}</th>
+                    {% endfor %}
+                </tr>
+                {% for row in query_results %}
+                <tr>
+                    {% for cell in row %}
+                    <td>{{ cell }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </body>
+    </html>
+    """
+
+    return render_template_string(html_template, column_names=column_names, query_results=query_results)
+
+if __name__ == "__main__":
+    app.run(debug=True)

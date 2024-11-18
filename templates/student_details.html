@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes dos Alunos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 1200px;
+            margin-top: 20px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            transition: background-color 0.2s;
+        }
+
+        .btn-back {
+            background-color: #2baa0b;
+        }
+
+        .btn-back:hover {
+            background-color: #298305;
+        }
+
+        .btn-csv {
+            background-color: #4CAF50;
+        }
+
+        .btn-csv:hover {
+            background-color: #45a049;
+        }
+
+        .btn-pdf {
+            background-color: #4CAF50;
+        }
+
+        .btn-pdf:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="btn-container">
+            <a href="/" class="btn btn-back">Voltar</a>
+            <div>
+                <button id="csvBtn" class="btn btn-csv">Baixar CSV</button>
+                <button id="pdfBtn" class="btn btn-pdf">Baixar PDF</button>
+            </div>
+        </div>
+
+        <h1>Detalhes dos Alunos</h1>
+
+        <table id="studentsTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Andamento</th>
+                    <th>Último Acesso</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.id }}</td>
+                    <td>{{ student.name }}</td>
+                    <td>{{ student.progress }}</td>
+                    <td>{{ student.last_sign_in_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const table = document.getElementById('studentsTable');
+            
+            function getTableData() {
+                const rows = Array.from(table.querySelectorAll('tbody tr'));
+                return rows.map(row => {
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    return cells.map(cell => cell.textContent.trim());
+                });
+            }
+
+            document.getElementById('csvBtn').addEventListener('click', function() {
+                const columnTitles = ['ID', 'Nome', 'Andamento', 'Último Acesso'];
+                const data = getTableData();
+                
+                fetch('{{ url_for("generate_csv") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        columns: columnTitles,
+                        data: data
+                    })
+                })
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'Andamento.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                })
+                .catch(error => alert('Erro ao gerar CSV: ' + error));
+            });
+
+            document.getElementById('pdfBtn').addEventListener('click', function() {
+                const columnTitles = ['ID', 'Nome', 'Andamento', 'Último Acesso'];
+                const data = getTableData();
+
+                fetch('{{ url_for("generate_pdf") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        columns: columnTitles,
+                        data: data
+                    })
+                })
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'Andamento.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                })
+                .catch(error => alert('Erro ao gerar PDF: ' + error));
+            });
+        });
+    </script>
+</body>
+</html>

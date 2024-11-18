@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gráfico da Consulta - {{ script_name }}</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <a href="https://safa2024.onrender.com/" class="btn">Voltar </a><br>
+    
+    <style>
+
+    .container {
+        position: relative; /* Necessário para o posicionamento absoluto do filho */
+    }
+   
+        .btn {
+            position: absolute;
+            top: 20px; /* Ajuste conforme necessário */
+            right: 20px; /* Ajuste conforme necessário */
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            color: #fff;
+            background-color: #1bac0e;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none; /* Remove o sublinhado do texto do link */
+            transition: background-color 0.2s; /* Efeito suave ao mudar de cor */
+        }
+    
+        .btn:hover, .btn:focus {
+            background-color: #00b309;
+            color: #fff;
+            outline: none; /* Remove o contorno que pode aparecer ao focar o botão */
+        }
+    </style>
+    <h1>Visualização do Gráfico: {{ script_name }}</h1>
+    <div id="myChart" style="width:100%; height:500px;"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rawData = {{ data|tojson|safe }};
+            const labels = rawData.labels;
+            const datasets = rawData.datasets;
+
+            // Convertendo os datasets para a estrutura esperada por Plotly
+            let traces = datasets.map((dataset, index) => {
+                return {
+                    x: labels,
+                    y: dataset.data,
+                    type: 'bar', // Definindo explicitamente o tipo como 'bar'
+                    name: dataset.label,
+                    marker: {
+                        color: '#46a846', // Usando as cores definidas no app.py
+                    },
+                    // Configurando o texto de hover para mostrar o valor e informação adicional
+                    hoverinfo: 'y+name',
+                };
+            });
+
+            const layout = {
+                title: '' + '{{ script_name }}',
+                xaxis: { title: '' },
+                yaxis: { title: '' },
+                margin: { l: 100, r: 50, t: 50, b: 220 }, // Ajustando margens para garantir visibilidade
+                barmode: 'group', // Configuração para barras agrupadas
+            };
+
+            Plotly.newPlot('myChart', traces, layout);
+        });
+    </script>
+    
+</body>
+
+</html>

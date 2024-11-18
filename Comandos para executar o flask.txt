@@ -1,0 +1,69 @@
+cd C:\Users\wilivro\Documents\Dashboard_Safa V2
+
+venv\Scripts\activate
+
+set FLASK_APP=app.py
+
+flask run OU python -m flask run
+
+
+git init (apenas para novos repositórios)
+
+git add .
+
+git commit -m "Mensagem"
+
+git remote add origin *url do repositório no git* (apenas para novos repositórios)
+
+git push -f origin master
+
+RODAR NO CONSOLE DO HEROKU = gunicorn app:app --workers=4 --timeout=120 --bind=0.0.0.0:8000
+
+gunicorn app:app --workers=3 --timeout=120
+
+
+user: adaptativa_read
+senha: pe71d6441e182e2458c5fd7701d60d1d0023f68f74dbd0ea0f8e1211d05a14374
+URL: ec2-44-220-222-138.compute-1.amazonaws.com
+Database: de84slt1iucctv
+Port: 5432
+
+
+
+
+
+SQL Gerado:
+               WITH SelectedData AS (
+        SELECT
+            qaur.user_id,
+            qaur.quiz_id,
+            qur.topic_name,
+            qaur.result
+        FROM quiz_user_answer_results qaur
+        JOIN quiz_user_answer_reports qur
+            ON qur.question_id = qaur.question_id
+            AND qur.quiz_id = qaur.quiz_id
+        WHERE qaur.quiz_id IN (SELECT id FROM quizzes WHERE name ILIKE '%Sim Geral 5º MT C1 03%')
+    ),
+    AggregatedResults AS (
+        SELECT
+            ic2.name AS escola,
+            cl.name AS turma,
+            COUNT(DISTINCT u.id) AS alunos_concluidos,
+            sd.topic_name AS descritor,
+            ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) AS acertos
+        FROM SelectedData sd
+        JOIN users u ON u.id = sd.user_id
+        JOIN institution_enrollments ie
+            ON ie.user_id = u.id
+        JOIN institution_classrooms cl
+            ON cl.id = ie.classroom_id
+        JOIN institution_colleges ic2
+            ON ic2.id = ie.college_id
+        WHERE ic2.name ILIKE '%COLÉGIO ANTÔNIO ARARIPE%'
+        GROUP BY ic2.name, cl.name, sd.topic_name
+        HAVING ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) <= 50
+        ORDER BY ic2.name, cl.name, sd.topic_name
+        LIMIT 100
+    )
+    SELECT * FROM AggregatedResults;

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Resultados da Consulta</title>
+    <link href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/responsive/2.2.3/css/responsive.dataTables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/fixedheader/3.1.8/css/fixedHeader.dataTables.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/yadcf@0.9.4/jquery.dataTables.yadcf.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/colresize/1.0.0/css/dataTables.colResize.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.3/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedheader/3.1.8/js/dataTables.fixedHeader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/yadcf@0.9.4/jquery.dataTables.yadcf.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.datatables.net/colresize/1.0.0/js/dataTables.colResize.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header {
+            width: 100%;
+            overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
+            height: 138px;
+        }
+        .header h1 {
+            margin: 0;
+            padding: 0;
+            font-size: 24px;
+        }
+        .header span {
+            font-size: 16px;
+            color: #666;
+        }
+        .header .btn-container {
+            float: right;
+            gap: 10px;
+            margin-top: 20px;
+            flex-direction: row;
+            justify-content: end;
+            align-items: end;
+
+        }
+        .btn1 {
+            font-size: 14px;
+            padding: 10px 18px;
+            cursor: pointer;
+            text-align: center;
+            color: #fff;
+            background-color: #2ab31d;
+            border: none;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            margin: 12px;
+            top: 10px;
+            right: 180px;
+            width: 140px; /* Largura para evitar sobreposiÃ§Ã£o */
+        }
+        .btn2 {
+            font-size: 14px;
+            padding: 10px 18px;
+            cursor: pointer;
+            text-align: center;
+            color: #fff;
+            background-color: #2ab31d;
+            border: none;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            margin: 12px;
+            width: 140px; /* Largura para evitar sobreposiÃ§Ã£o */
+            
+        }
+        .btn1:hover, .btn1:focus {
+            background-color: #239a17;
+            outline: none;
+        }
+        .btn2:hover, .btn2:focus {
+            background-color: #239a17;
+            outline: none;
+        }
+        .table-container {
+            width: 97%;
+            overflow-x: auto;
+            margin-bottom: 40px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            text-align: center;
+            padding: 8px;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        th {
+            background-color: #2ab31d;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        #resultsTable_filter {
+            display: none;
+        }
+        tfoot input {
+            width: 100%;
+            padding: 3px;
+            box-sizing: border-box;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 0;
+            margin-left: -2px;
+        }
+        .dataTables_scrollBody {
+            overflow: auto;
+            width: 100%;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: none;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: none;
+        }
+        .dataTables_scrollHead {
+            overflow: hidden;
+        }
+        .dataTables_scrollHeadInner {
+            width: 100% !important;
+        }
+        .img-voltar {
+            float: left;
+            font-size: 14px;
+            padding: 8px 16px;
+            cursor: pointer;
+            text-align: center;
+            color: #fff;
+            background-color: #2ab31d;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            margin: 0 5px;
+        }
+        .img-voltar a {
+            display: block;
+            width: 100px;
+        }
+    </style>
+
+</head>
+<body>
+    <div class="header">
+        <div style="float: left;">
+            <a href="{{ url_for('index') }}" class="img-voltar">Voltar</a>
+        </div>
+        <div style="float: left; margin-left: 20px;">
+            <h1>Resultados da Consulta - {{ script_name }}</h1>
+            <h1>{{ data_atual }}</h1>
+        </div>
+        <br>
+        <div class="btn-container">
+            <button id="csvBtn" class="btn2">Baixar em CSV</button>
+            <button id="pdfBtn" class="btn1">Baixar PDF</button>
+        </div>
+    </div>
+    <div class="table-container">
+        <table id="resultsTable" class="display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    {% for col_name in columns %}
+                    <th>{{ col_name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tfoot>
+                <tr>
+                    {% for col_name in columns %}
+                    <th></th>
+                    {% endfor %}
+                </tr>
+            </tfoot>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    {% for cell in row %}
+                    <td>{{ cell }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Hidden fields for column titles -->
+    <input type="hidden" id="column_titles" value='{{ columns | tojson | safe }}'>
+
+    <script>
+        $(document).ready(function() {
+            var table = $('#resultsTable').DataTable({
+                responsive: false,
+                fixedHeader: true,
+                scrollX: true,
+                autoWidth: true,
+                colResize: {
+                    realtime: true,
+                    handleWidth: 10
+                },
+                language: {
+                    searchPlaceholder: "Digite"
+                }
+            });
+
+            yadcf.init(table, [
+                {% for i in range(columns|length) %}
+                { 
+                    column_number: {{ i }}, 
+                    filter_type: "multi_select", 
+                    select_type: 'select2', 
+                    select_type_options: { 
+                        width: '100%', 
+                        closeOnSelect: false,
+                        placeholder: "Digite"
+                    },
+                    filter_reset_button_text: false 
+                }
+                {% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]);
+
+            function getFilteredData() {
+                var data = table.rows({ search: 'applied' }).data().toArray();
+                return data;
+            }
+
+            $('#csvBtn').on('click', function() {
+                var filteredData = getFilteredData();
+                var columnTitles = JSON.parse($('#column_titles').val());
+
+                $.ajax({
+                    type: 'POST',
+                    url: '{{ url_for("generate_csv") }}',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        script_name: "{{ script_name }}",
+                        columns: columnTitles,
+                        data: filteredData
+                    }),
+                    success: function(response) {
+                        var blob = new Blob([response], { type: 'text/csv;charset=utf-8;' });
+                        var url = URL.createObjectURL(blob);
+                        var a = document.createElement('a');
+                        a.href = url;
+                        a.download = '{{ script_name }}.csv';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    },
+                    error: function(xhr) {
+                        alert('Erro ao gerar CSV: ' + xhr.responseText);
+                    }
+                });
+            });
+
+            $('#pdfBtn').on('click', function() {
+                var filteredData = getFilteredData();
+                var columnTitles = JSON.parse($('#column_titles').val());
+
+                $.ajax({
+                    type: 'POST',
+                    url: '{{ url_for("generate_pdf") }}',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        script_name: "{{ script_name }}",
+                        columns: columnTitles,
+                        data: filteredData
+                    }),
+                    success: function(response) {
+                        var blob = new Blob([response], { type: 'application/pdf' });
+                        var url = URL.createObjectURL(blob);
+                        var a = document.createElement('a');
+                        a.href = url;
+                        a.download = '{{ script_name }}.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    },
+                    error: function(xhr) {
+                        alert('Erro ao gerar PDF: ' + xhr.responseText);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
