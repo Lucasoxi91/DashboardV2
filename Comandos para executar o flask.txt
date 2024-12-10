@@ -2,6 +2,7 @@ cd C:\Users\wilivro\Documents\Dashboard_Safa V2
 
 pip install C:\Users\wilivro\Documents\Dashboard_Safa V2\psycopg2-2.9.10-cp39-cp39-win_amd64.whl
 
+** conda activate venv **
 
 venv\Scripts\activate
 

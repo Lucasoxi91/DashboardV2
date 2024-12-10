@@ -300,8 +300,10 @@ button[type="submit"]:active {
                         table.clear().draw();
                         if (response.length > 0) {
                             response.forEach(function(row) {
+                                var escolaLink = `<a href="/descritores.html?escola=${encodeURIComponent(row.escola)}&disciplina=${encodeURIComponent($('#disciplina').val())}&curso=${encodeURIComponent($('#curso').val())}&nota_corte=${encodeURIComponent($('#nota_corte').val())}" target="_blank">${row.escola}</a>`;
+
                                 table.row.add([
-                                    row.escola,
+                                    escolaLink, // Substituir o texto puro por um link dinâmico
                                     row.turma,
                                     row.alunos_concluidos,
                                     row.descritor,

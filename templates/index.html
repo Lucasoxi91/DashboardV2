@@ -206,29 +206,35 @@
             margin-bottom: 20px;
         }
         .button-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around;
-        }
-        .button-container button {
-            flex: 1 1 calc(25% - 10px); /* Ajuste a largura dos botões conforme necessário */
-            margin: 5px;
-        }
-        button {
-            background-color: #2ab31d;
-            color: white;
-            padding: 10px 15px;
-            margin: 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-            width: 45%;
-        }
-        button:hover {
-            background-color: rgb(50, 94, 53);
-        }
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center; /* Centraliza os botões */
+                gap: 20px; /* Espaçamento entre os botões */
+                margin-top: 20px;
+            }
+
+            button {
+                background-color: #2ab31d;
+                color: white;
+                padding: 15px 20px;
+                margin: 10px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 18px;
+                transition: background-color 0.3s, transform 0.2s; 
+                text-align: center;
+            }
+
+            button:hover {
+                background-color: #1f7d15;
+                transform: translateY(-2px);
+            }
+
+            button:active {
+                background-color: #155b0f;
+                transform: translateY(1px);
+            }
         .chart-container {
             width: 30%;
             margin-top: 20px;
@@ -410,29 +416,19 @@
         
         <a href="/logout" class="btn">Desconectar</a>
         <div class="button-container">
-            <button class="logout-btn" onclick="location.href='/relatorio'" style="float: left;">Quadro Geral</button>
-    
-            <button class="logout-btn" onclick="location.href='/descritores'" style="float: left;">Descritores Críticos por Escola</button>
-            <button class="logout-btn" onclick="location.href='/descritorestotal'" style="float: left;">Descritores Críticos Geral </button>
-
-      
-      
-                    
-            <button onclick="location.href='/execute?script=Taxa de Participação e Média de notas.py&display=tabela'" type="button">
-                Taxa De Participação E Média De Notas
-            </button>
-            
-            <button onclick="location.href='/execute?script=Andamento por simulados e mini simulados.py&display=tabela'" type="button">
-                Andamento Por Simulados E Mini Simulados
-            </button>
-            
+            <button  onclick="location.href='/relatorio'" type="button">Quadro Geral</button> 
+            <button onclick="location.href='/descritorestotal'" type="button">Descritores Críticos</button>
             <button onclick="location.href='/execute?script=Total por Turma.py&display=tabela'" type="button">
                 Total Por Turma
             </button>
-            
-
-           
+            <button onclick="location.href='/execute?script=Taxa de Participação e Média de notas.py&display=tabela'" type="button">
+                Taxa De Participação E Média De Notas
+            </button>
+            <button onclick="location.href='/execute?script=Andamento por simulados e mini simulados.py&display=tabela'" type="button">
+                Andamento Por Simulados E Mini Simulados
+            </button>
         </div>
+        
     </div>
 </body>
 

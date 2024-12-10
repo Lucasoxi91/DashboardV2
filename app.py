@@ -434,17 +434,27 @@ def get_schools():
 
 
 # Função para gerar descritores com filtros@app.route('/gerar_relatorio_descritores', methods=['POST'])
-@app.route('/gerar_relatorio_descritores', methods=['POST'])
+@app.route('/gerar_relatorio_descritores', methods=['GET'])
 def gerar_relatorio_descritores():
     try:
-        # Pegando os dados do formulário
-        disciplina = request.form.get('disciplina')
-        curso = request.form.get('curso')
-        escola = request.form.get('escola')
-        nota_corte = request.form.get('nota_corte')
+        # Obtendo os parâmetros da URL
+        disciplina = request.args.get('disciplina')
+        instituicao = request.args.get('curso')
+        escola = request.args.get('escola')
+        nota_corte = request.args.get('nota_corte')
+
+        # Validação dos parâmetros
+        if not disciplina or not instituicao or not escola or not nota_corte:
+            return jsonify({"error": "Parâmetros obrigatórios faltando ou inválidos."}), 400
+
+        # Convertendo nota de corte para número
+        try:
+            nota_corte = float(nota_corte)
+        except ValueError:
+            return jsonify({"error": "Nota de corte deve ser um número válido."}), 400
 
         # Log para verificação dos dados recebidos
-        print(f"Disciplina: {disciplina}, Curso: {curso}, Escola: {escola}, Nota de Corte: {nota_corte}")  
+        print(f"Disciplina: {disciplina}, Curso: {instituicao}, Escola: {escola}, Nota de Corte: {nota_corte}")
 
         # Estabelecendo a conexão com o banco de dados PostgreSQL
         conn = psycopg2.connect(
@@ -457,47 +467,72 @@ def gerar_relatorio_descritores():
         cursor = conn.cursor()
 
         # Construindo o nome do quiz dinamicamente com base nos parâmetros
-        curso_parts = curso.split(" ")
-        curso_ano = curso_parts[1].split("°")[0] if "Matemática" in disciplina else curso_parts[2].split("°")[0]
-        curso_disciplina = "MT" if "Matemática" in disciplina else "LP"
-        curso_numero = curso_parts[-3].replace("Curso", "C").strip()
-        simulado_pattern_03 = f"%Sim Geral {curso_ano}º {curso_disciplina} C{curso_numero} 03%"
+        try:
+            curso_parts = instituicao.split(" ")
+            curso_ano = curso_parts[1].split("°")[0] if "Matemática" in disciplina else curso_parts[2].split("°")[0]
+            curso_disciplina = "MT" if "Matemática" in disciplina else "LP"
+            curso_numero = curso_parts[-3].replace("Curso", "C").strip()
+            simulado_pattern_03 = f"%Sim Geral {curso_ano}º {curso_disciplina} C{curso_numero} 03%"
+        except IndexError:
+            return jsonify({"error": "Erro ao processar o curso. Verifique o formato do curso."}), 400
 
         # SQL com parâmetros ajustados
         query = f"""
-               WITH SelectedData AS (
-        SELECT
-        qaur.user_id,
-        qaur.quiz_id,
-        qur.topic_name,
-        qaur.result
-    FROM quiz_user_answer_results qaur
-    JOIN quiz_user_answer_reports qur
-        ON qur.question_id = qaur.question_id AND qur.quiz_id = qaur.quiz_id AND qur.user_id = qaur.user_id 
-    WHERE qaur.quiz_id IN (SELECT id FROM quizzes WHERE name ILIKE'{simulado_pattern_03}')
-    ),
-    AggregatedResults AS (
-        SELECT
-            ic2.name AS escola,
-            cl.name AS turma,
-            COUNT(DISTINCT u.id) AS alunos_concluidos,
-            sd.topic_name AS descritor,
-            ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) AS acertos
-        FROM SelectedData sd
-        JOIN users u ON u.id = sd.user_id
-        JOIN institution_enrollments ie 
-            ON ie.user_id = u.id
-        JOIN institution_classrooms cl 
-            ON cl.id = ie.classroom_id 
-        JOIN institution_colleges ic2 
-            ON ic2.id = ie.college_id
-        WHERE ic2.name ILIKE '%{escola}%'
-        GROUP BY ic2.name, cl.name, sd.topic_name
-        HAVING ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) <= {nota_corte}
-        ORDER BY ic2.name, cl.name, sd.topic_name
-        LIMIT 100
-    )
-    SELECT * FROM AggregatedResults;
+        WITH SelectedData AS (
+            SELECT
+                qaur.user_id,
+                qaur.quiz_id,
+                qur.topic_name,
+                qaur.result
+            FROM quiz_user_answer_results qaur
+            JOIN quiz_user_answer_reports qur
+                ON qur.question_id = qaur.question_id 
+                AND qur.quiz_id = qaur.quiz_id 
+                AND qur.user_id = qaur.user_id 
+            WHERE qaur.quiz_id IN (
+                SELECT id 
+                FROM quizzes 
+                WHERE name ILIKE '{simulado_pattern_03}' -- Parâmetro para o simulado
+            )
+        ),
+        UniqueEnrollments AS (
+            SELECT DISTINCT
+                u.id AS aluno_id,
+                cl.id AS turma_id,
+                CASE
+                    WHEN cl.name ILIKE 'turma%' THEN TRIM(SPLIT_PART(cl.name, ' ', 2)) -- Exemplo: "Turma A" → "A"
+                    ELSE cl.name
+                END AS turma_nome,
+                ic2.name AS escola_nome,
+                inst.name AS instituicao_nome
+            FROM users u
+            JOIN institution_enrollments ie ON ie.user_id = u.id
+            JOIN institution_classrooms cl ON cl.id = ie.classroom_id
+            JOIN institution_colleges ic2 ON ic2.id = ie.college_id
+            JOIN institutions inst ON inst.id = ic2.institution_id
+            WHERE inst.name ILIKE '%{instituicao}%' -- Parâmetro para instituição
+              AND ic2.name ILIKE '%{escola}%' -- Parâmetro para escola
+        ),
+        AggregatedResults AS (
+            SELECT
+                ue.escola_nome AS escola,
+                ue.turma_nome AS turma,
+                COUNT(DISTINCT ue.aluno_id) AS alunos_concluidos, -- Contar alunos únicos
+                sd.topic_name AS descritor,
+                ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) AS acertos
+            FROM SelectedData sd
+            JOIN UniqueEnrollments ue ON ue.aluno_id = sd.user_id
+            GROUP BY ue.escola_nome, ue.turma_nome, sd.topic_name
+            HAVING ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) <= {nota_corte} -- Parâmetro para nota de corte
+            ORDER BY ue.escola_nome, ue.turma_nome, sd.topic_name
+        )
+        SELECT 
+            escola, 
+            turma, 
+            alunos_concluidos, 
+            descritor, 
+            acertos
+        FROM AggregatedResults;
         """
 
         # Log da consulta gerada
@@ -507,40 +542,43 @@ def gerar_relatorio_descritores():
         cursor.execute(query)
         dados = cursor.fetchall()
 
-             # Fechando a conexão
+        # Fechando a conexão
         cursor.close()
         conn.close()
+
+        # Preparando os dados para JSON
         dados_json = [
-                {
-                    "escola": row[0],
-                    "turma": row[1],
-                    "alunos_concluidos": row[2],
-                    "descritor": row[3],
-                    "acertos": row[4]
-                }
-                for row in dados
-            ]
-        
-        print(jsonify(dados_json))
+            {
+                "escola": row[0],
+                "turma": row[1],
+                "alunos_concluidos": row[2],
+                "descritor": row[3],
+                "acertos": row[4]
+            }
+            for row in dados
+        ]
 
         # Retornando os dados como JSON
         return jsonify(dados_json)
-    
 
     except Exception as e:
         print(f"Erro: {str(e)}")
         return jsonify({"error": "Ocorreu um erro ao gerar o relatório."}), 500
+
+
+  
+
 
 @app.route('/gerar_relatorio_descritores_total', methods=['POST'])
 def gerar_relatorio_descritores_total():
     try:
         # Pegando os dados do formulário
         disciplina = request.form.get('disciplina')
-        curso = request.form.get('curso')
+        instituicao = request.form.get('curso')
         nota_corte = request.form.get('nota_corte')
 
         # Log para verificação dos dados recebidos
-        print(f"Disciplina: {disciplina}, Curso: {curso}, Nota de Corte: {nota_corte}")
+        print(f"Disciplina: {disciplina}, Curso: {instituicao}, Nota de Corte: {nota_corte}")
 
         # Estabelecendo a conexão com o banco de dados PostgreSQL
         conn = psycopg2.connect(
@@ -554,7 +592,7 @@ def gerar_relatorio_descritores_total():
         cursor = conn.cursor()
 
         # Corrigir a extração de partes do curso levando em consideração o número de palavras na disciplina
-        curso_parts = curso.split(" ")
+        curso_parts = instituicao.split(" ")
 
         # Extração correta para o ano e número do curso levando em conta a quantidade de palavras na disciplina
         if "Língua Portuguesa" in disciplina:
@@ -570,11 +608,12 @@ def gerar_relatorio_descritores_total():
         simulado_pattern_03 = f"%Sim Geral {curso_ano}º {curso_disciplina} C{curso_numero} 03%"
 
         # Query com o padrão do simulado corrigido
-        curso_query = f"%{curso}%"
+        curso_query = f"%{instituicao}%"
 
         # SQL para gerar o relatório total
         query = f"""
-                WITH SelectedData AS (
+
+        WITH SelectedData AS (
             SELECT
                 qaur.user_id,
                 qaur.quiz_id,
@@ -582,29 +621,57 @@ def gerar_relatorio_descritores_total():
                 qaur.result
             FROM quiz_user_answer_results qaur
             JOIN quiz_user_answer_reports qur
-                ON qur.question_id = qaur.question_id AND qur.quiz_id = qaur.quiz_id AND qur.user_id = qaur.user_id 
-            WHERE qaur.quiz_id IN (SELECT id FROM quizzes WHERE name ILIKE '{simulado_pattern_03}')
+                ON qur.question_id = qaur.question_id 
+                AND qur.quiz_id = qaur.quiz_id 
+                AND qur.user_id = qaur.user_id 
+            WHERE qaur.quiz_id IN (
+                SELECT id 
+                FROM quizzes 
+                WHERE name ILIKE '{simulado_pattern_03}' -- Parâmetro para o simulado
+            )
         ),
-        AggregatedResults AS (
-            SELECT
-                ic2.name AS escola,
-                cl.name AS turma,
-                COUNT(DISTINCT u.id) AS alunos_concluidos,
-                sd.topic_name AS descritor,
-                ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) AS acertos
-            FROM SelectedData sd
-            JOIN users u ON u.id = sd.user_id
+        UniqueEnrollments AS (
+            -- Garantir alunos únicos por turma, com instituição e escola dinâmicas
+            SELECT DISTINCT
+                u.id AS aluno_id,
+                cl.id AS turma_id,
+                CASE
+                    WHEN cl.name ILIKE 'turma%' THEN TRIM(SPLIT_PART(cl.name, ' ', 2))  
+                    ELSE cl.name
+                END AS turma_nome,
+                ic2.name AS escola_nome,
+                inst.name AS instituicao_nome
+            FROM users u
             JOIN institution_enrollments ie ON ie.user_id = u.id
             JOIN institution_classrooms cl ON cl.id = ie.classroom_id
             JOIN institution_colleges ic2 ON ic2.id = ie.college_id
-            JOIN institutions i ON i.id = ic2.institution_id
-            WHERE i.name ILIKE '{curso_query}'
-            GROUP BY ic2.name, cl.name, sd.topic_name
+            JOIN institutions inst ON inst.id = ic2.institution_id
+            WHERE inst.name ILIKE '%{instituicao}%' -- Parâmetro para instituição
+            AND ic2.name NOT ILIKE '%Wiquadro%' -- Excluir escola "Wiquadro"
+        ),
+        AggregatedResults AS (
+            SELECT
+                ue.escola_nome AS escola,
+                ue.turma_nome AS turma,
+                COUNT(DISTINCT ue.aluno_id) AS alunos_concluidos, -- Contar alunos únicos
+                sd.topic_name AS descritor,
+                -- Calcular percentual de acertos
+                ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) AS acertos
+            FROM SelectedData sd
+            JOIN UniqueEnrollments ue ON ue.aluno_id = sd.user_id
+            GROUP BY ue.escola_nome, ue.turma_nome, sd.topic_name
             HAVING ROUND(AVG(CASE WHEN sd.result = 'right' THEN 100 ELSE 0 END)::numeric, 1) <= {nota_corte}
-            ORDER BY ic2.name, cl.name, sd.topic_name
-            LIMIT 100
+            ORDER BY ue.escola_nome, ue.turma_nome, sd.topic_name
         )
-        SELECT * FROM AggregatedResults;
+        SELECT 
+            escola,
+            turma,
+            alunos_concluidos,
+            descritor,
+            acertos
+        FROM AggregatedResults;
+ 
+
         """
 
         # Log da consulta gerada
@@ -638,7 +705,7 @@ def gerar_relatorio_descritores_total():
 
 
 
-@app.route('/descritores')
+@app.route('/descritores.html')
 def descritores():
     return render_template('descritores.html')
 

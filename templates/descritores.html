@@ -261,12 +261,57 @@ button[type="submit"]:active {
     </table>
 </div>
     <script>
-        $(document).ready(function() {
-            // Carrega os cursos ao alterar a disciplina
-            $('#disciplina').change(function() {
-                var disciplina = $(this).val();
-                loadCourses(disciplina);
-            });
+       
+    $(document).ready(function() {
+                            function getQueryParams() {
+                                const urlParams = new URLSearchParams(window.location.search);
+                                return {
+                                    disciplina: urlParams.get('disciplina'),
+                                    curso: urlParams.get('curso'),
+                                    escola: urlParams.get('escola'),
+                                    nota_corte: urlParams.get('nota_corte')
+                                };
+                            }
+
+                            const params = getQueryParams();
+
+                            if (params.disciplina && params.curso && params.escola && params.nota_corte) {
+                                $('#loading').show();
+
+                                $.ajax({
+                                    url: '/gerar_relatorio_descritores',
+                                    type: 'GET', // Utiliza GET para capturar os parâmetros da URL
+                                    data: params,
+                                    success: function(response) {
+                                        if (response.length > 0) {
+                                            $('#resultadosTable tbody').empty(); // Limpar resultados anteriores
+                                            response.forEach(function(row) {
+                                                $('#resultadosTable tbody').append(`
+                                                    <tr>
+                                                        <td>${row.escola}</td>
+                                                        <td>${row.turma}</td>
+                                                        <td>${row.alunos_concluidos}</td>
+                                                        <td>${row.descritor}</td>
+                                                        <td>${row.acertos}</td>
+                                                    </tr>
+                                                `);
+                                            });
+                                            $('#resultadosTable').show();
+                                        } else {
+                                            alert('Nenhum dado encontrado para os filtros aplicados.');
+                                        }
+                                        $('#loading').hide();
+                                    },
+                                    error: function() {
+                                        alert('Erro ao carregar os dados. Tente novamente.');
+                                        $('#loading').hide();
+                                    }
+                                });
+                            } else {
+                                alert('Parâmetros obrigatórios estão faltando.');
+                            }
+                      
+
 
             function loadCourses(disciplina) {
                 if (disciplina) {
@@ -343,37 +388,9 @@ button[type="submit"]:active {
                 $('#resultadosTable tbody').empty();  // Limpa a tabela de resultados antes de novos dados
                 $('#resultadosTable').hide();  // Esconde a tabela durante o carregamento
 
-                $.ajax({
-                        url: '/gerar_relatorio_descritores',
-                        type: 'POST',
-                        data: formData,
-                        success: function(response) {
-                            if (response.length > 0) {
-                                $('#resultadosTable tbody').empty();  // Limpa os resultados anteriores
-                                response.forEach(function(row) {
-                                    $('#resultadosTable tbody').append(
-                                        `<tr>
-                                            <td>${row.escola}</td>
-                                            <td>${row.turma}</td>
-                                            <td>${row.alunos_concluidos}</td>
-                                            <td>${row.descritor}</td>
-                                            <td>${row.acertos}</td>
-                                        </tr>`
-                                    );
-                                });
-                                $('#resultadosTable').show();  // Mostra a tabela de resultados
-                            } else {
-                                alert('Nenhum dado encontrado para os filtros aplicados.');
-                            }
-                            $('#loading').hide();  // Esconde o indicador de carregamento
-                        },
-                        error: function(jqXHR, textStatus, errorThrown) {
-                            alert("Erro ao gerar relatório. Verifique o console para mais detalhes.");
-                            $('#loading').hide();  // Esconde o indicador de carregamento em caso de erro
-                        }
-                });
+            
             });
-        });
+       });
     </script>
 
     
