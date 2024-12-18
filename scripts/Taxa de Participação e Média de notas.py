@@ -23,12 +23,12 @@ def execute_query():
             with conn.cursor() as cur:
                 cur.execute("""
                             
-WITH QuizData AS (
+        WITH QuizData AS (
     SELECT 
         i.name as curso,
         ic2.name as escola,
         ic2.id as escola_id,
-        q.name as simulado,
+         'Curso ' || (REGEXP_MATCHES(q.name, 'C([0-9]+)'))[1] || ' Simulado ' || (REGEXP_MATCHES(q.name, '[0-9]{2}$'))[1] AS simulado,
         count(DISTINCT users.id) as n_user_id,  -- DISTINCT adicionado aqui
         ROUND(AVG(qg.average)::numeric, 1) as grade_avg  -- Média de notas arredondada para uma casa decimal
     FROM 
@@ -78,6 +78,7 @@ SELECT
 FROM QuizData qd
 INNER JOIN EnrollmentData ed ON qd.curso = ed.curso AND qd.escola_id = ed.escola_id
 ORDER BY qd.curso, qd.escola, qd.simulado;
+
 
 
 

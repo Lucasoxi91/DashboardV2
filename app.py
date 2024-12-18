@@ -648,6 +648,8 @@ def gerar_relatorio_descritores_total():
             JOIN institutions inst ON inst.id = ic2.institution_id
             WHERE inst.name ILIKE '%{instituicao}%' -- Parâmetro para instituição
             AND ic2.name NOT ILIKE '%Wiquadro%' -- Excluir escola "Wiquadro"
+             AND ic2.name NOT ILIKE '%ESCOLA1%' -- Excluir escola "1"
+             AND ic2.name NOT ILIKE '%ESCOLA2%' -- Excluir escola  "2"
         ),
         AggregatedResults AS (
             SELECT
@@ -982,9 +984,11 @@ def render_pdf(html_content):
     output = io.BytesIO()
     pisa_status = pisa.CreatePDF(io.StringIO(html_content), dest=output)
     if pisa_status.err:
+        print("Erro ao gerar PDF:", pisa_status.err)
         return None
     output.seek(0)
     return output
+
 
 
 

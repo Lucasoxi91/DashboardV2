@@ -19,38 +19,38 @@ def get_db_connection():
 def execute_query(filters=None):
     base_query = """
    
-    WITH AlunosSimulado AS (
-        SELECT 
-            'Tauá' AS municipio,
-            ic2.name AS college,
-            UPPER(regexp_replace(ic.name, '[^0-9A-Za-z ]', '', 'g')) AS turma, -- Remove caracteres não alfanuméricos e coloca em maiúsculas
-            REGEXP_REPLACE(LOWER(TRIM(il.name)), '[^a-z0-9]', '', 'g') AS ano, -- Remove caracteres não alfanuméricos e coloca em maiúsculas
-            q.name AS nome_simulado,
-            CASE 
-                WHEN q.name LIKE '%LP%' THEN 'Língua Portuguesa'
-                WHEN q.name LIKE '%MT%' THEN 'Matemática'
-            END AS cursos, 
-            COUNT(DISTINCT users.id) AS alunos_simulado,
-            AVG(qg.average)::NUMERIC(10,1) AS avg_grade
-        FROM 
-            quiz_user_progresses qup  
-        INNER JOIN users ON users.id = qup.user_id 
-        INNER JOIN quizzes q ON q.id = qup.quiz_id 
-        INNER JOIN institution_enrollments ie ON ie.user_id = qup.user_id 
-        INNER JOIN institution_classrooms ic ON ic.id = ie.classroom_id  
-        INNER JOIN institution_levels il ON il.id = ic.level_id  -- Adiciona a coluna level (ano)
-        INNER JOIN institution_courses ic3 ON ic3.id = il.course_id 
-        INNER JOIN institution_colleges ic2 ON ic2.id = ic3.institution_college_id
-        INNER JOIN institutions i ON i.id = ic2.institution_id  
-        INNER JOIN quiz_grades qg ON qg.user_id = users.id AND qg.quiz_id = q.id
-        WHERE qup.finished = TRUE 
-        AND (q.name LIKE '%Sim Geral%' OR q.name LIKE '%Geral%')
-        AND i.name ILIKE '%2024%'
-        AND LOWER(ic2.name) NOT IN ('wiquadro', 'teste', 'escola demonstração', 'escola1', 'escola2')
-        GROUP BY ic2.name, UPPER(regexp_replace(ic.name, '[^0-9A-Za-z ]', '', 'g')),
-            REGEXP_REPLACE(LOWER(TRIM(il.name)), '[^a-z0-9]', '', 'g') , q.name  -- Adiciona a coluna level (ano) no GROUP BY
-    ),
-    TodosAlunosMatriculados AS (
+   WITH AlunosSimulado AS (
+    SELECT 
+        'Tauá' AS municipio,
+        ic2.name AS college,
+        UPPER(regexp_replace(ic.name, '[^0-9A-Za-z ]', '', 'g')) AS turma, -- Remove caracteres não alfanuméricos e coloca em maiúsculas
+        REGEXP_REPLACE(LOWER(TRIM(il.name)), '[^a-z0-9]', '', 'g') AS ano, -- Remove caracteres não alfanuméricos e coloca em maiúsculas
+          'Curso ' || (REGEXP_MATCHES(q.name, 'C([0-9]+)'))[1] || ' Simulado ' || (REGEXP_MATCHES(q.name, '[0-9]{2}$'))[1] AS nome_simulado,
+         CASE 
+            WHEN q.name LIKE '%LP%' THEN 'Língua Portuguesa'
+            WHEN q.name LIKE '%MT%' THEN 'Matemática'
+        END AS cursos, 
+        COUNT(DISTINCT users.id) AS alunos_simulado,
+        AVG(qg.average)::NUMERIC(10,1) AS avg_grade
+    FROM 
+        quiz_user_progresses qup  
+    INNER JOIN users ON users.id = qup.user_id 
+    INNER JOIN quizzes q ON q.id = qup.quiz_id 
+    INNER JOIN institution_enrollments ie ON ie.user_id = qup.user_id 
+    INNER JOIN institution_classrooms ic ON ic.id = ie.classroom_id  
+    INNER JOIN institution_levels il ON il.id = ic.level_id  -- Adiciona a coluna level (ano)
+    INNER JOIN institution_courses ic3 ON ic3.id = il.course_id 
+    INNER JOIN institution_colleges ic2 ON ic2.id = ic3.institution_college_id
+    INNER JOIN institutions i ON i.id = ic2.institution_id  
+    INNER JOIN quiz_grades qg ON qg.user_id = users.id AND qg.quiz_id = q.id
+    WHERE qup.finished = TRUE 
+    AND (q.name LIKE '%Sim Geral%' OR q.name LIKE '%Geral%')
+    AND i.name ILIKE '%2024%'
+    AND LOWER(ic2.name) NOT IN ('wiquadro', 'teste', 'escola demonstração', 'escola1', 'escola2')
+    GROUP BY ic2.name, UPPER(regexp_replace(ic.name, '[^0-9A-Za-z ]', '', 'g')),
+        REGEXP_REPLACE(LOWER(TRIM(il.name)), '[^a-z0-9]', '', 'g') , q.name  -- Adiciona a coluna level (ano) no GROUP BY
+),
+ TodosAlunosMatriculados AS (
         SELECT 
             'Tauá' AS municipio,
             ic2.name AS college,
@@ -65,7 +65,7 @@ def execute_query(filters=None):
         INNER JOIN institution_colleges ic2 ON ic2.id = ic3.institution_college_id 
         INNER JOIN institutions i ON i.id = ic2.institution_id  
         WHERE i.name ILIKE '%2024%'
-        AND LOWER(ic2.name) NOT IN ('wiquadro', 'teste', 'escola demonstração', 'escola1', 'escola2')
+        AND LOWER(ic2.name) NOT IN ('wiquadro', 'teste', 'escola demonstração', 'escola1', 'escola2', 'ESCOLA_SANDBOX')
         GROUP BY ic2.name, UPPER(regexp_replace(ic.name, '[^0-9A-Za-z ]', '', 'g')),
             REGEXP_REPLACE(LOWER(TRIM(il.name)), '[^a-z0-9]', '', 'g')  
     )

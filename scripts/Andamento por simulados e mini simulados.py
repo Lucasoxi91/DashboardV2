@@ -63,7 +63,7 @@ TodosAlunosMatriculados AS (
     INNER JOIN institution_colleges ic2 ON ic2.id = ic3.institution_college_id 
     INNER JOIN institutions i ON i.id = ic2.institution_id  
     WHERE i.id IN (335, 336, 363)
-    AND ic2.name <> 'Wiquadro'
+    AND ic2.name NOT IN ('Wiquadro','ESCOLA1', 'ESCOLA2', 'ESCOLA_SANDBOX')
     GROUP BY ic2.name, ic.name
 )
 SELECT 
